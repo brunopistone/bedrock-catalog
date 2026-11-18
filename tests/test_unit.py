@@ -16,6 +16,7 @@ import pytest
 from main import (
     COMPLETE_VAR,
     PROG_NAME,
+    SHELL_CONFIG,
     call_api,
     create_client,
     fetch_inference_profiles,
@@ -626,3 +627,55 @@ class TestCompletion:
 
         assert result.exit_code == 0
         assert COMPLETE_VAR in result.output
+
+
+@pytest.mark.unit
+class TestCompletionInstall:
+    """Tests for 'completion --install' wiring the script into a shell profile."""
+
+    @pytest.fixture
+    def shell_files(self, tmp_path, monkeypatch):
+        """Point SHELL_CONFIG at temp files, returning the (script, profile) paths."""
+        script = tmp_path / "complete.bash"
+        profile = tmp_path / ".bashrc"
+        monkeypatch.setitem(SHELL_CONFIG, "bash", (str(script), str(profile)))
+        return script, profile
+
+    def test_writes_script_and_sources_it(self, run_cli, shell_files):
+        script, profile = shell_files
+
+        result = run_cli(["completion", "bash", "--install"])
+
+        assert result.exit_code == 0
+        assert COMPLETE_VAR in script.read_text()
+        assert f"source {script}" in profile.read_text()
+
+    def test_sibling_cli_marker_is_not_mistaken_for_ours(self, run_cli, shell_files):
+        """A sibling bedrock CLI's marker must not be read as ours.
+
+        The marker used to be a bare '# bedrock shell completion' - exactly the line
+        the sibling 'bedrock' CLI writes. --install found it, reported the profile
+        already wired, and silently never added our source line, so completion never
+        worked. Any marker not namespaced to PROG_NAME brings the bug straight back.
+        """
+        script, profile = shell_files
+        profile.write_text(
+            "# bedrock shell completion\n"
+            "[ -f ~/.config/bedrock/complete.bash ] && source ~/.config/bedrock/complete.bash\n"
+        )
+
+        result = run_cli(["completion", "bash", "--install"])
+
+        assert result.exit_code == 0
+        assert f"source {script}" in profile.read_text()
+        assert f"# {PROG_NAME} shell completion" in profile.read_text()
+
+    def test_is_idempotent(self, run_cli, shell_files):
+        script, profile = shell_files
+
+        run_cli(["completion", "bash", "--install"])
+        result = run_cli(["completion", "bash", "--install"])
+
+        assert result.exit_code == 0
+        assert "Nothing to do" in result.output
+        assert profile.read_text().count(f"source {script}") == 1

@@ -596,7 +596,9 @@ def completion(shell: str, install: bool):
 
     profile_file = os.path.expanduser(profile)
     source_line = f"[ -f {script_path} ] && source {script_path}"
-    marker = "# bedrock shell completion"
+    # Namespaced to PROG_NAME: a bare "# bedrock ..." marker also matches the line
+    # a sibling bedrock CLI writes, so --install would skip wiring us up silently.
+    marker = f"# {PROG_NAME} shell completion"
 
     existing = ""
     if os.path.exists(profile_file):

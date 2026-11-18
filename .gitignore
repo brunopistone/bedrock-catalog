@@ -1,7 +1,6 @@
 # IDE
 .idea/
 .vscode/
-.DS_Store
 
 # Environments
 .env
@@ -77,12 +76,6 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
-
-# Linter / formatter caches
-# Ruff writes a .gitignore containing '*' inside .ruff_cache, so this is belt and
-# braces - but relying on that is accidental, and `git check-ignore .ruff_cache`
-# reports the directory itself as not ignored.
-.ruff_cache/
 
 # Translations
 *.mo
@@ -161,4 +154,23 @@ dmypy.json
 */**/.terraform*
 
 # Base data exclude
+
+*/**/data/
 data/outputs
+*/**/cdk.*/
+*/**/configs_*
+*/**/input
+
+# Linter / formatter caches
+# Ruff writes a .gitignore containing '*' inside .ruff_cache, so this is belt and
+# braces - but relying on that is accidental, and `git check-ignore .ruff_cache`
+# reports the directory itself as not ignored.
+-.ruff_cache/
+
+# Ignore Claude-related directories (any depth)
+.claude/
+**/.claude/
+
+# Ignore any 'codex' directories (any depth)
+codex/
+**/codex/
